@@ -1,0 +1,5 @@
+export type InjectValues =
+  | 'INVOICE_REPOSITORY'
+  | 'PAYMENT_REPOSITORY'
+  | 'DATA_SOURCE'
+  | 'CONFIG_SERVICE';
