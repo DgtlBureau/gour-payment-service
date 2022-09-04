@@ -6,6 +6,7 @@ import { paymentProviders } from './payment.providers';
 import { PaymentService } from './payment.service';
 import { ConfigService } from '@nestjs/config';
 import { AppConfigService } from 'app.module';
+import { PaymentApiService } from './payment-api.service';
 
 const httpFactory = {
   useFactory: async (configService: AppConfigService) => ({
@@ -18,6 +19,7 @@ const httpFactory = {
 
 @Module({
   imports: [HttpModule.registerAsync(httpFactory), DatabaseModule],
-  providers: [...paymentProviders, PaymentService],
+  providers: [...paymentProviders, PaymentService, PaymentApiService],
+  exports: [PaymentApiService],
 })
 export class PaymentModule {}
