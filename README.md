@@ -14,6 +14,7 @@ Added database connection credentials
 1. For starting migrations build app (npm run build)
 2. npm run migration:generate --name=init
 3. npm run migration:run
+4. delete migration directory (!required!)
 
 # git
 
