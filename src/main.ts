@@ -24,5 +24,7 @@ async function bootstrap() {
   }
 
   await app.listen();
+
+  console.info('SERVICE STARTED ON PORT: ', process.env.PORT);
 }
 bootstrap();
