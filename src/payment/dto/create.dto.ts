@@ -1,19 +1,23 @@
-import { IsEnum, IsNumber, IsString, IsUUID } from 'class-validator';
 import { Currency } from '../../@types/currency';
+import { IsEnum, IsNumber, IsString, IsUUID } from 'class-validator';
+import { Invoice } from 'invoice/invoice.entity';
+import { PaymentStatus } from '../../@types/statuses';
 
 export class PaymentCreateDto {
   @IsEnum(Currency)
   currency: Currency;
 
   @IsNumber()
-  amount: AmountOfGoodsNumber;
+  amount: PurchaseValueNumber;
+
+  @IsEnum(PaymentStatus)
+  status: PaymentStatus;
 
   @IsNumber()
-  value: PurchaseValueNumber;
-
-  @IsString()
-  signature: SignatureString;
+  transactionId: UniqueIdNumber;
 
   @IsUUID()
   payerUuid: UuidString;
+
+  invoice: Invoice;
 }

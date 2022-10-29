@@ -5,3 +5,7 @@ type URIString = string;
 type PurchaseValueNumber = number;
 type AmountOfGoodsNumber = number;
 type UniqueIdNumber = number;
+type EmailString = string;
+type IpAddressString = string;
+type ErrorString = string;
+type SuccessOrFailBool = boolean;

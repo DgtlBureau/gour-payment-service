@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 FROM node:16
-=======
-FROM node:18.0.0
->>>>>>> 6afbc98 (feat: added docker)
 
 WORKDIR /services/gour-auth-service
 
