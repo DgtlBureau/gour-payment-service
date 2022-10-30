@@ -54,7 +54,7 @@ export class PaymentService implements IPaymentService {
     }
 
     if (!this.invoiceService.verifySign(invoice.signature)) {
-      throw new ForbiddenException('Ошибка проверки подлинности инвойса');
+      throw new ForbiddenException('Ошибка проверки подлинности счета');
     }
 
     if (invoice.status === InvoiceStatus.CANCELLED) {
@@ -92,13 +92,13 @@ export class PaymentService implements IPaymentService {
         payerUuid: dto.payerUuid,
       });
 
-      const updatedInvoice = await this.invoiceService.update(invoice.uuid, {
+      await this.invoiceService.update(invoice.uuid, {
         status: apiTsx.success ? InvoiceStatus.PAID : InvoiceStatus.FAILED,
       });
 
       this.logger.log(`Создана оплата с uuid ${payment.uuid}`);
 
-      return updatedInvoice;
+      return this.invoiceService.getOne(invoice.uuid);
     } catch (error) {
       throw new InternalServerErrorException('Неизвестная ошибка', error);
     }

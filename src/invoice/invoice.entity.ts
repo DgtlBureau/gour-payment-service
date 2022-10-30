@@ -24,7 +24,7 @@ export class Invoice extends AppEntity {
   @Column({ type: 'enum', enum: Currency })
   currency: Currency;
 
-  @Column({ type: 'text', unique: true })
+  @Column({ type: 'text', unique: true, select: false })
   signature: SignatureString;
 
   @Column({ type: 'enum', enum: InvoiceStatus })

@@ -30,6 +30,7 @@ export class InvoiceService implements IInvoiceService {
         currentDate: new Date().toUTCString(),
       })
       .andWhere('invoice.payerUuid = :payerUuid', { payerUuid: dto.payerUuid })
+      .andWhere('invoice.status != :status', { status: InvoiceStatus.PAID })
       .getOne();
 
     const invoiceSignatureObject: InvoiceSignatureObject = {
@@ -78,6 +79,12 @@ export class InvoiceService implements IInvoiceService {
     return this.invoiceRepository.findOne({
       where: { uuid },
       relations: ['payments'],
+    });
+  }
+
+  async getMany(payerUuid: UuidString): Promise<Invoice[]> {
+    return this.invoiceRepository.find({
+      where: { payerUuid },
     });
   }
 

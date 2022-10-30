@@ -17,4 +17,9 @@ export class InvoiceController {
   getInvoice(@Payload() dto: InvoiceGetOneDto) {
     return this.invoiceService.getOne(dto.uuid);
   }
+
+  @MessagePattern('get-invoices')
+  getInvoices(@Payload() uuid: UuidString) {
+    return this.invoiceService.getMany(uuid);
+  }
 }
