@@ -29,6 +29,9 @@ export class Payment extends AppEntity {
   @Column({ type: 'enum', enum: PaymentStatus })
   status: PaymentStatus;
 
+  @Column({ type: 'text', nullable: true })
+  errorMessage: ErrorString;
+
   @ManyToOne(() => Invoice)
   invoice: Invoice;
 }

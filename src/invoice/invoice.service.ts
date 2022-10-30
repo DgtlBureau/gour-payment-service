@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { IInvoiceService } from '../@types/services-implementation';
 import { InvoiceCreateDto } from './dto/create.dto';
@@ -7,6 +7,7 @@ import { InvoiceStatus } from '../@types/statuses';
 import { InjectValues } from '../@types/inject-values';
 import { JwtService } from 'jwt/jwt.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class InvoiceService implements IInvoiceService {
@@ -15,9 +16,14 @@ export class InvoiceService implements IInvoiceService {
     private invoiceRepository: Repository<Invoice>,
     private jwtService: JwtService,
     private schedulerRegistry: SchedulerRegistry,
+    private configService: ConfigService,
   ) {}
 
+  logger = new Logger('InvoiceLogger');
+
   async create(dto: InvoiceCreateDto): Promise<Invoice> {
+    const invoiceExpMin = this.configService.get('SIGNATURE_SECRET_KEY_EXP');
+
     const candidateInvoice = await this.invoiceRepository
       .createQueryBuilder('invoice')
       .where('invoice.expiresAt >= :currentDate', {
@@ -33,9 +39,7 @@ export class InvoiceService implements IInvoiceService {
     const signature = this.sign(invoiceSignatureObject);
 
     if (candidateInvoice && !this.verifySign(candidateInvoice.signature)) {
-      throw new ForbiddenException(
-        `Ошибка проверки подлинности инвойса ${candidateInvoice.uuid}!`,
-      );
+      throw new ForbiddenException('Ошибка проверки подлинности инвойса');
     }
 
     if (candidateInvoice && this.verifySign(candidateInvoice.signature)) {
@@ -47,13 +51,13 @@ export class InvoiceService implements IInvoiceService {
     }
 
     const invoiceExpiresAt = new Date();
-    invoiceExpiresAt.setMinutes(invoiceExpiresAt.getMinutes() + 90);
+    invoiceExpiresAt.setMinutes(invoiceExpiresAt.getMinutes() + invoiceExpMin);
 
     const invoice = await this.invoiceRepository.save({
       ...invoiceSignatureObject,
+      signature,
       status: InvoiceStatus.WAITING,
       expiresAt: invoiceExpiresAt,
-      signature,
     });
 
     const cancelInvoice = async () => {
@@ -61,11 +65,11 @@ export class InvoiceService implements IInvoiceService {
       this.schedulerRegistry.deleteTimeout(invoice.uuid);
     };
 
-    const expiresMilliseconds = 90 * 60 * 1000;
-
+    const expiresMilliseconds = invoiceExpMin * 60 * 1000;
     const timeout = setTimeout(cancelInvoice, expiresMilliseconds);
-
     this.schedulerRegistry.addTimeout(invoice.uuid, timeout);
+
+    this.logger.log(`Создан новый счет ${invoice.uuid}`);
 
     return invoice;
   }
@@ -92,7 +96,7 @@ export class InvoiceService implements IInvoiceService {
     return this.jwtService.sign(invoice);
   }
 
-  verifySign(signature: string): boolean {
+  verifySign(signature: SignatureString): boolean {
     try {
       this.jwtService.verify(signature);
       return true;

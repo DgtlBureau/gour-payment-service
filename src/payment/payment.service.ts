@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -46,62 +48,71 @@ export class PaymentService implements IPaymentService {
   async pay(dto: PayDto): Promise<Invoice> {
     const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
 
+    if (!invoice) {
+      this.logger.error(`Счета с uuid ${dto.invoiceUuid} не существует`);
+      throw new NotFoundException(`Счета  не существует`);
+    }
+
+    if (!this.invoiceService.verifySign(invoice.signature)) {
+      throw new ForbiddenException('Ошибка проверки подлинности инвойса');
+    }
+
     if (invoice.status === InvoiceStatus.CANCELLED) {
-      throw new BadRequestException(
-        'Счет закрыт, он больше не принимает платежи',
-      );
+      this.logger.error(`Счет с uuid ${dto.invoiceUuid} не принимает платежи`);
+      throw new BadRequestException('Счет больше не принимает платежи');
     }
 
     if (invoice.status === InvoiceStatus.PAID) {
-      throw new BadRequestException('Счет уже был оплачен');
+      this.logger.error(`Счет с uuid ${dto.invoiceUuid} уже оплачен`);
+      throw new BadRequestException('Счет уже оплачен');
     }
 
-    if (!invoice) {
-      throw new NotFoundException(
-        `Счета с uuid ${dto.invoiceUuid} не существует`,
-      );
+    try {
+      const apiTsx = await this.paymentApiService.createPayment({
+        Amount: invoice.value,
+        InvoiceId: invoice.uuid,
+        payerUuid: dto.payerUuid,
+        Email: dto.email,
+        CardCryptogramPacket: dto.signature,
+        Currency: dto.currency,
+        IpAddress: dto.ipAddress,
+      });
+
+      if (apiTsx.errorMessage) this.logger.error(apiTsx.errorMessage);
+      const logType = apiTsx.success ? 'log' : 'error';
+      this.logger[logType]('Новая транзакция в сервисе оплаты: ', apiTsx);
+
+      const payment = await this.create({
+        invoice,
+        transactionId: apiTsx.transactionId || null,
+        errorMessage: apiTsx.errorMessage || null,
+        currency: dto.currency,
+        status: apiTsx.success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED,
+        amount: invoice.value,
+        payerUuid: dto.payerUuid,
+      });
+
+      const updatedInvoice = await this.invoiceService.update(invoice.uuid, {
+        status: apiTsx.success ? InvoiceStatus.PAID : InvoiceStatus.FAILED,
+      });
+
+      this.logger.log(`Создана оплата с uuid ${payment.uuid}`);
+
+      return updatedInvoice;
+    } catch (error) {
+      throw new InternalServerErrorException('Неизвестная ошибка', error);
     }
-
-    const apiTsx = await this.paymentApiService.createPayment({
-      Amount: invoice.value,
-      CardCryptogramPacket: dto.signature,
-      Currency: dto.currency,
-      Email: dto.email,
-      IpAddress: dto.ipAddress,
-      InvoiceId: invoice.uuid,
-      payerUuid: dto.payerUuid,
-    });
-
-    if (apiTsx.errorMessage) this.logger.error(apiTsx.errorMessage);
-    if (apiTsx) this.logger.error('Новая транзакция: ', apiTsx);
-
-    const payment = await this.create({
-      invoice,
-      transactionId: apiTsx.transactionId || null,
-      currency: dto.currency,
-      status: apiTsx.success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED,
-      amount: invoice.value,
-      payerUuid: dto.payerUuid,
-    });
-
-    const updatedInvoice = await this.invoiceService.update(invoice.uuid, {
-      status: apiTsx.success ? InvoiceStatus.PAID : InvoiceStatus.FAILED,
-    });
-
-    this.logger.log(`Создана оплата с uuid ${payment.uuid}`);
-
-    return updatedInvoice;
-  }
-
-  updateStatus(status: PaymentStatus): Promise<Payment> {
-    throw new Error('Method not implemented.');
   }
 
   sign(signatureObject: PaymentSignatureObject): SignatureString {
     return this.jwtService.sign(signatureObject);
   }
 
-  verifySign(signature: string): boolean {
+  updateStatus(status: PaymentStatus): Promise<Payment> {
+    throw new Error('Method not implemented.');
+  }
+
+  verifySign(signature: SignatureString): boolean {
     throw new Error('Method not implemented.');
   }
 }

@@ -6,9 +6,15 @@ import { DatabaseModule } from 'database/database.module';
 import { PaymentModule } from 'payment/payment.module';
 import { JwtModule } from 'jwt/jwt.module';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => PaymentModule), JwtModule],
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    forwardRef(() => PaymentModule),
+    JwtModule,
+  ],
   providers: [InvoiceService, ...invoiceProviders, SchedulerRegistry],
   controllers: [InvoiceController],
   exports: [InvoiceService],

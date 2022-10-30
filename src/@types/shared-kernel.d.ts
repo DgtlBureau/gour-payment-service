@@ -9,3 +9,4 @@ type EmailString = string;
 type IpAddressString = string;
 type ErrorString = string;
 type SuccessOrFailBool = boolean;
+type TokenString = string;
