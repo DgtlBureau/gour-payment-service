@@ -19,7 +19,7 @@ export class InvoiceController {
   }
 
   @MessagePattern('get-invoices')
-  getInvoices(@Payload() uuid: UuidString) {
-    return this.invoiceService.getMany(uuid);
+  getInvoices(@Payload() userId: UuidString) {
+    return this.invoiceService.getMany(userId);
   }
 }
