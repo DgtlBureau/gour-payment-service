@@ -62,7 +62,10 @@ export class InvoiceService implements IInvoiceService {
     });
 
     const cancelInvoice = async () => {
-      await this.updateStatus(invoice.uuid, InvoiceStatus.CANCELLED);
+      const currentInvoice = await this.getOne(invoice.uuid);
+      if (currentInvoice.status !== InvoiceStatus.PAID) {
+        await this.updateStatus(invoice.uuid, InvoiceStatus.CANCELLED);
+      }
       this.schedulerRegistry.deleteTimeout(invoice.uuid);
     };
 
