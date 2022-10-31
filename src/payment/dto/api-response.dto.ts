@@ -1,9 +1,12 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsBoolean } from 'class-validator';
 
 export class PaymentApiResponseDto {
-  @IsString()
-  paymentForm: HTMLString;
+  @IsBoolean()
+  Success: SuccessOrFailBool;
 
-  @IsNumber()
-  paymentId: UniqueIdNumber;
+  Message: ErrorString;
+
+  Model: {
+    TransactionId: UniqueIdNumber;
+  };
 }

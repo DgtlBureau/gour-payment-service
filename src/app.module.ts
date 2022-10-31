@@ -3,9 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PaymentModule } from 'payment/payment.module';
 import { InvoiceModule } from './invoice/invoice.module';
+import { JwtModule } from './jwt/jwt.module';
 
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { ConfigServiceVariables } from './@types/config-service';
 import { config } from 'dotenv';
 import { DatabaseModule } from './database/database.module';
@@ -14,8 +14,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSource } from 'database/database.providers';
 import { getRequiredEnvsByNodeEnv } from 'common/utils/getRequiredEnvsByNodeEnv';
 import { NodeEnv } from 'common/types/App';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { SentryInterceptor } from 'common/interceptors/sentry.interceptor';
+import { HttpExceptionFilter } from 'common/filters/http-exception.filter';
 
 config();
 
@@ -28,6 +29,8 @@ const envs: (keyof ConfigServiceVariables)[] = [
   'DB_PASSWORD',
   'DB_DATABASE',
   'PAYMENT_SERVICE_URL',
+  'PAYMENT_SERVICE_LOGIN',
+  'PAYMENT_SERVICE_API_KEY',
 ];
 
 const requiredEnvs = getRequiredEnvsByNodeEnv(
@@ -44,16 +47,6 @@ for (const field of requiredEnvs) {
 // Используй этот метод для получения переменных окружения, в нем описаны названия ключей
 export class AppConfigService extends ConfigService<ConfigServiceVariables> {}
 
-const jwtFactory = {
-  useFactory: async (configService: AppConfigService) => ({
-    secret: configService.get<string>('SIGNATURE_SECRET_KEY'),
-    signOptions: {
-      expiresIn: configService.get('SIGNATURE_SECRET_KEY_EXP') + 'M',
-    },
-  }),
-  inject: [ConfigService],
-};
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -62,10 +55,9 @@ const jwtFactory = {
     }),
     DatabaseModule,
     TypeOrmModule.forRoot(dataSource.options),
-    JwtModule.registerAsync(jwtFactory),
+    JwtModule,
     InvoiceModule,
     PaymentModule,
-    JwtModule,
   ],
   controllers: [AppController],
   providers: [
@@ -73,6 +65,10 @@ const jwtFactory = {
     {
       provide: APP_INTERCEPTOR,
       useClass: SentryInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
 })

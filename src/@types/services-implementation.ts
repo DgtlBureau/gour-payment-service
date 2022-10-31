@@ -1,26 +1,24 @@
-import { PaymentApiResponseDto } from 'payment/dto/api-response.dto';
+import { PaymentApiCreateDto } from 'payment/dto/api-create.dto';
+import { PaymentCreateDto } from 'payment/dto/create.dto';
+import { PayDto } from 'payment/dto/pay.dto';
+import { PaymentCreateResponseDto } from 'payment/dto/response.dto';
 import { InvoiceCreateDto } from '../invoice/dto/create.dto';
 import { Invoice } from '../invoice/invoice.entity';
-import { PaymentCreateDto } from '../payment/dto/create.dto';
-import { Payment } from '../payment/payment.entity';
-import { Currency } from './currency';
+import { Payment, PaymentSignatureObject } from '../payment/payment.entity';
 import { InvoiceStatus, PaymentStatus } from './statuses';
 
 export interface IInvoiceService {
   create(dto: InvoiceCreateDto): Promise<Invoice>;
-  updateStatus(status: InvoiceStatus): Promise<Invoice>;
-  changeAmount(
-    amount: AmountOfGoodsNumber,
-    currency: Currency,
-  ): Promise<Invoice>;
+  updateStatus(uuid: UuidString, status: InvoiceStatus): Promise<Invoice>;
   sign(invoice: Invoice): SignatureString;
   verifySign(signature: SignatureString): boolean;
 }
 
 export interface IPaymentService {
   create(dto: PaymentCreateDto): Promise<Payment>;
+  pay(dto: PayDto): Promise<Invoice>;
   updateStatus(status: PaymentStatus): Promise<Payment>;
-  sign(invoice: Payment): SignatureString;
+  sign(invoice: PaymentSignatureObject): SignatureString;
   verifySign(signature: SignatureString): boolean;
 }
 
@@ -29,5 +27,5 @@ export interface IJwtService {
   verify(signature: SignatureString): boolean;
 }
 export interface IPaymentApiService {
-  createPayment(dto: PaymentCreateDto): Promise<PaymentApiResponseDto>;
+  createPayment(dto: PaymentApiCreateDto): Promise<PaymentCreateResponseDto>;
 }
