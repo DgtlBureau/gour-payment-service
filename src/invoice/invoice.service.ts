@@ -22,7 +22,7 @@ export class InvoiceService implements IInvoiceService {
   logger = new Logger('InvoiceLogger');
 
   async create(dto: InvoiceCreateDto): Promise<Invoice> {
-    const invoiceExpMin = this.configService.get('SIGNATURE_SECRET_KEY_EXP');
+    const invoiceExpMin = +this.configService.get('SIGNATURE_SECRET_KEY_EXP');
 
     const candidateInvoice = await this.invoiceRepository
       .createQueryBuilder('invoice')
