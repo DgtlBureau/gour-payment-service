@@ -9,4 +9,7 @@ export class Check3dSecureDto {
 
   @IsUrl()
   successUrl: URIString;
+
+  @IsUrl()
+  rejectUrl: URIString;
 }

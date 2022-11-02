@@ -106,7 +106,7 @@ export class PaymentService implements IPaymentService {
 
       const redirectUrl = `${this.configService.get(
         'FINISH_3D_SECURE_URL',
-      )}?successUrl=${dto.successUrl}`;
+      )}?successUrl=${dto.successUrl}&rejectUrl=${dto.rejectUrl}`;
 
       if (apiTsx.acsUrl) {
         const redirectUri = await this.paymentApiService.get3dSecureRedirectUrl(
@@ -155,8 +155,9 @@ export class PaymentService implements IPaymentService {
   async check3dSecureAndFinishPay({
     code,
     successUrl,
+    rejectUrl,
     transactionId: tsxId,
-  }: Check3dSecureDto): Promise<Invoice> {
+  }: Check3dSecureDto): Promise<{ redirect: URIString }> {
     const candidatePayment = await this.getOne(tsxId);
     const invoice = candidatePayment.invoice;
 
@@ -201,11 +202,9 @@ export class PaymentService implements IPaymentService {
 
       this.logger.log(`Оплата с uuid ${updatedPayment.uuid} обновлена`);
 
-      if (apiTsx.success) {
-        await firstValueFrom(this.httpService.post(successUrl));
-      }
-
-      return this.invoiceService.getOne(invoice.uuid);
+      return {
+        redirect: apiTsx.success ? successUrl : rejectUrl,
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'неизвестная ошибка',

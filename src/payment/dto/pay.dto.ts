@@ -29,4 +29,7 @@ export class PayDto {
 
   @IsUrl()
   successUrl: URIString;
+
+  @IsUrl()
+  rejectUrl: URIString;
 }
