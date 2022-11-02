@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsEnum,
   IsIP,
+  IsOptional,
   IsString,
   IsUrl,
   IsUUID,
@@ -16,6 +17,7 @@ export class PayDto {
   payerUuid: UuidString;
 
   @IsEmail()
+  @IsOptional()
   email: EmailString;
 
   @IsIP()
