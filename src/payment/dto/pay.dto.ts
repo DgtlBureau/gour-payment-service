@@ -1,4 +1,11 @@
-import { IsEmail, IsEnum, IsIP, IsString, IsUUID } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsIP,
+  IsString,
+  IsUrl,
+  IsUUID,
+} from 'class-validator';
 import { Currency } from '../../@types/currency';
 
 export class PayDto {
@@ -19,4 +26,10 @@ export class PayDto {
 
   @IsUUID()
   invoiceUuid: UuidString;
+
+  @IsUrl()
+  successUrl: URIString;
+
+  @IsUrl()
+  rejectUrl: URIString;
 }

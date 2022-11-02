@@ -9,4 +9,8 @@ export class PaymentCreateResponseDto {
   transactionId: UniqueIdNumber;
 
   errorMessage: ErrorString;
+
+  acsUrl: URIString;
+
+  paReq: TokenString;
 }

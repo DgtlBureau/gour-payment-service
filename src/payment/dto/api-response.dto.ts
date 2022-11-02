@@ -8,5 +8,7 @@ export class PaymentApiResponseDto {
 
   Model: {
     TransactionId: UniqueIdNumber;
+    AcsUrl: URIString;
+    PaReq: TokenString;
   };
 }
