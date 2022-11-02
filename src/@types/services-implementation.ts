@@ -4,7 +4,11 @@ import { PayDto } from 'payment/dto/pay.dto';
 import { PaymentCreateResponseDto } from 'payment/dto/response.dto';
 import { InvoiceCreateDto } from '../invoice/dto/create.dto';
 import { Invoice } from '../invoice/invoice.entity';
-import { Payment, PaymentSignatureObject } from '../payment/payment.entity';
+import {
+  Payment,
+  PaymentSignatureObject,
+  Secure3dData,
+} from '../payment/payment.entity';
 import { InvoiceStatus, PaymentStatus } from './statuses';
 
 export interface IInvoiceService {
@@ -16,7 +20,7 @@ export interface IInvoiceService {
 
 export interface IPaymentService {
   create(dto: PaymentCreateDto): Promise<Payment>;
-  pay(dto: PayDto): Promise<Invoice>;
+  pay(dto: PayDto): Promise<Invoice | Secure3dData>;
   updateStatus(status: PaymentStatus): Promise<Payment>;
   sign(invoice: PaymentSignatureObject): SignatureString;
   verifySign(signature: SignatureString): boolean;

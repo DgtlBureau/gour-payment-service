@@ -10,6 +10,10 @@ export type InvoiceSignatureObject = Pick<
   'amount' | 'currency' | 'payerUuid' | 'value'
 >;
 
+export type InvoiceWith3dSecure = Invoice & {
+  redirectUri: URIString;
+};
+
 @Entity({ name: 'invoice' })
 export class Invoice extends AppEntity {
   @Column('uuid')

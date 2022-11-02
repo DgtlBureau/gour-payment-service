@@ -31,6 +31,7 @@ const envs: (keyof ConfigServiceVariables)[] = [
   'PAYMENT_SERVICE_URL',
   'PAYMENT_SERVICE_LOGIN',
   'PAYMENT_SERVICE_API_KEY',
+  'FINISH_3D_SECURE_URL',
 ];
 
 const requiredEnvs = getRequiredEnvsByNodeEnv(

@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { IInvoiceService } from '../@types/services-implementation';
 import { InvoiceCreateDto } from './dto/create.dto';
 import { Invoice, InvoiceSignatureObject } from './invoice.entity';

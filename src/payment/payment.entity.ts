@@ -9,6 +9,10 @@ export type PaymentSignatureObject = { invoiceUuid: UuidString } & Pick<
   'amount' | 'payerUuid' | 'currency' | 'transactionId'
 >;
 
+export type Secure3dData = {
+  redirectUri: URIString;
+};
+
 @Entity({ name: 'payment' })
 export class Payment extends AppEntity {
   @Column('uuid')
