@@ -85,7 +85,7 @@ export class PaymentService implements IPaymentService {
         Amount: invoice.value,
         InvoiceId: invoice.uuid,
         payerUuid: dto.payerUuid,
-        Email: dto.email,
+        Email: dto.email || '',
         CardCryptogramPacket: dto.signature,
         Currency: dto.currency,
         IpAddress: dto.ipAddress,

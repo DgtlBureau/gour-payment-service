@@ -13,7 +13,7 @@ import { PaymentController } from './payment.controller';
 
 const httpFactory = {
   useFactory: async (configService: AppConfigService) => ({
-    timeout: 5000,
+    timeout: 20000,
     maxRedirects: 5,
     baseURL: configService.get('PAYMENT_SERVICE_URL'),
     headers: {
