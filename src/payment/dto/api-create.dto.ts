@@ -18,6 +18,9 @@ export class PaymentApiCreateDto {
   @IsString()
   IpAddress: IpAddressString;
 
+  @IsString()
+  Description: string;
+
   @IsUUID()
   InvoiceId: UuidString;
 

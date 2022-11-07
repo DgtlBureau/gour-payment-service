@@ -20,8 +20,6 @@ import { PayDto } from './dto/pay.dto';
 import { PaymentApiService } from './payment-api.service';
 import { Check3dSecureDto } from './dto/check-3d-secure.dto';
 import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PaymentService implements IPaymentService {
@@ -31,7 +29,6 @@ export class PaymentService implements IPaymentService {
     private jwtService: JwtService,
     private invoiceService: InvoiceService,
     private paymentApiService: PaymentApiService,
-    private httpService: HttpService,
     private configService: ConfigService,
   ) {}
 
@@ -89,6 +86,7 @@ export class PaymentService implements IPaymentService {
         CardCryptogramPacket: dto.signature,
         Currency: dto.currency,
         IpAddress: dto.ipAddress,
+        Description: 'Пополнение личного кабинета',
       });
 
       if (apiTsx.errorMessage) this.logger.error(apiTsx.errorMessage);
