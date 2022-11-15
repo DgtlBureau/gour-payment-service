@@ -23,7 +23,7 @@ export class Invoice extends AppEntity {
   @Column('double precision')
   amount: AmountOfGoodsNumber;
 
-  @Column('json')
+  @Column({ type: 'json', default: '{}' })
   meta: JSON;
 
   @Column('double precision')
