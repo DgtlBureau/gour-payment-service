@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsUUID } from 'class-validator';
+import { IsEnum, IsNumber, IsObject, IsUUID } from 'class-validator';
 import { Currency } from '../../@types/currency';
 
 export class InvoiceCreateDto {
@@ -10,6 +10,9 @@ export class InvoiceCreateDto {
 
   @IsNumber()
   value: PurchaseValueNumber;
+
+  @IsObject()
+  meta: SomeObject; // some meta information
 
   @IsUUID()
   payerUuid: UuidString;

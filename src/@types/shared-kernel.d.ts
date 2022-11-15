@@ -11,3 +11,4 @@ type ErrorString = string;
 type SuccessOrFailBool = boolean;
 type TokenString = string;
 type CodeString = string;
+type SomeObject = object;

@@ -19,8 +19,12 @@ export class Invoice extends AppEntity {
   @Column('uuid')
   payerUuid: UuidString;
 
+  //TODO: перенести в meta
   @Column('double precision')
   amount: AmountOfGoodsNumber;
+
+  @Column('json')
+  meta: JSON;
 
   @Column('double precision')
   value: PurchaseValueNumber;
