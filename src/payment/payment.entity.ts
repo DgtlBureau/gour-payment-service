@@ -4,25 +4,37 @@ import { PaymentStatus } from '../@types/statuses';
 import { AppEntity } from '../app.entity';
 import { Invoice } from '../invoice/invoice.entity';
 
+export type PaymentSignatureObject = { invoiceUuid: UuidString } & Pick<
+  Payment,
+  'amount' | 'payerUuid' | 'currency' | 'transactionId'
+>;
+
+export type Secure3dData = {
+  redirectUri: URIString;
+};
+
 @Entity({ name: 'payment' })
 export class Payment extends AppEntity {
   @Column('uuid')
   payerUuid: UuidString;
 
-  @Column('uuid')
-  invoiceUuid: UuidString;
+  @Column({ type: 'double precision', nullable: true })
+  transactionId: UniqueIdNumber; // id транзакции платежной системы
 
   @Column('double precision')
-  amount: number;
+  amount: PurchaseValueNumber;
 
   @Column({ type: 'enum', enum: Currency })
   currency: Currency;
 
-  @Column({ type: 'varchar', unique: true })
+  @Column({ type: 'text', unique: true, select: false })
   signature: SignatureString;
 
   @Column({ type: 'enum', enum: PaymentStatus })
   status: PaymentStatus;
+
+  @Column({ type: 'text', nullable: true })
+  errorMessage: ErrorString;
 
   @ManyToOne(() => Invoice)
   invoice: Invoice;

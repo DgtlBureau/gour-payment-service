@@ -8,4 +8,7 @@ export type ConfigServiceVariables = {
   DB_DATABASE: string;
   DB_PORT: string;
   PAYMENT_SERVICE_URL: string;
+  PAYMENT_SERVICE_API_KEY: string;
+  PAYMENT_SERVICE_LOGIN: string;
+  FINISH_3D_SECURE_URL: string;
 };

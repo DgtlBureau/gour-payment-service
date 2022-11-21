@@ -5,11 +5,11 @@ import { IJwtService } from '../@types/services-implementation';
 @Injectable()
 export class JwtService implements IJwtService {
   constructor(private jwtService: NestJwtService) {}
-  sign(payload: Record<string, unknown>): string {
+  sign(payload: Record<string, unknown>): TokenString {
     return this.jwtService.sign(payload);
   }
 
-  verify(signature: string): boolean {
+  verify(signature: SignatureString): boolean {
     try {
       this.jwtService.verify(signature);
       return true;

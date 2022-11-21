@@ -7,5 +7,6 @@ export enum InvoiceStatus {
 
 export enum PaymentStatus {
   SUCCESS = 'SUCCESS', // Успешная оплата |
+  INIT = 'INIT', // Транзакция создана
   FAILED = 'FAILED', // Ошибка оплаты | (любая ошибка при оплате, в том числе и нехватка денег на карте)
 }
