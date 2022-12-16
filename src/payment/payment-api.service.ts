@@ -54,6 +54,7 @@ export class PaymentApiService implements IPaymentApiService {
     const res = await firstValueFrom(
       this.httpService.post(acsUrl, null, { params: dto }),
     );
+    console.log('3ds-res:', res);
     return res.request?.res?.responseUrl;
   }
 }
