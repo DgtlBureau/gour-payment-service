@@ -51,12 +51,8 @@ export class PaymentApiService implements IPaymentApiService {
     acsUrl,
     ...dto
   }: PaymentApiGet3dSecureUrlDto): Promise<string> {
-    const params = new URLSearchParams();
-    for (const key in dto) {
-      params.append(key, dto[key]);
-    }
     const res = await firstValueFrom(
-      this.httpService.post(acsUrl, null, { params }),
+      this.httpService.post(acsUrl, null, { params: dto }),
     );
     return res.request?.res?.responseUrl;
   }
