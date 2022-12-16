@@ -55,7 +55,9 @@ export class PaymentApiService implements IPaymentApiService {
     for (const key in dto) {
       params.append(key, dto[key]);
     }
-    const res = await firstValueFrom(this.httpService.post(acsUrl, params));
+    const res = await firstValueFrom(
+      this.httpService.post(acsUrl, null, { params }),
+    );
     return res.request?.res?.responseUrl;
   }
 }
