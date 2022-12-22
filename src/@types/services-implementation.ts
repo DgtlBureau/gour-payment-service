@@ -20,7 +20,7 @@ export interface IInvoiceService {
 
 export interface IPaymentService {
   create(dto: PaymentCreateDto): Promise<Payment>;
-  pay(dto: PayDto): Promise<Invoice | Secure3dData>;
+  pay(dto: PayDto): unknown;
   updateStatus(status: PaymentStatus): Promise<Payment>;
   sign(invoice: PaymentSignatureObject): SignatureString;
   verifySign(signature: SignatureString): boolean;
