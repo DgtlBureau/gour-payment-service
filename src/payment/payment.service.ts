@@ -55,7 +55,7 @@ export class PaymentService implements IPaymentService {
     return this.paymentRepository.save({ ...dto, signature });
   }
 
-  async pay(dto: PayDto): Promise<Invoice | InvoiceWith3dSecure> {
+  async pay(dto: PayDto) {
     const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
 
     if (!invoice) {
@@ -107,15 +107,6 @@ export class PaymentService implements IPaymentService {
       )}?successUrl=${dto.successUrl}&rejectUrl=${dto.rejectUrl}`;
 
       if (apiTsx.acsUrl) {
-        const redirectUri = await this.paymentApiService.get3dSecureRedirectUrl(
-          {
-            MD: apiTsx.transactionId,
-            PaReq: apiTsx.paReq,
-            TermUrl: redirectUrl,
-            acsUrl: apiTsx.acsUrl,
-          },
-        );
-
         const payment3d = await this.create({
           ...paymentData,
           status: PaymentStatus.INIT,
@@ -127,7 +118,12 @@ export class PaymentService implements IPaymentService {
 
         this.logger.log(`Создана оплата по 3d-secure с uuid ${payment3d.uuid}`);
 
-        return { ...invoice, redirectUri };
+        return {
+          MD: apiTsx.transactionId,
+          PaReq: apiTsx.paReq,
+          TermUrl: redirectUrl,
+          acsUrl: apiTsx.acsUrl,
+        };
       }
 
       const payment = await this.create({
