@@ -46,16 +46,4 @@ export class PaymentApiService implements IPaymentApiService {
       paReq: data?.Model?.PaReq,
     };
   }
-
-  async get3dSecureRedirectUrl({
-    acsUrl,
-    ...dto
-  }: PaymentApiGet3dSecureUrlDto): Promise<string> {
-    const params = new URLSearchParams();
-    for (const key in dto) {
-      params.append(key, dto[key]);
-    }
-    const res = await firstValueFrom(this.httpService.post(acsUrl, params));
-    return res.request?.res?.responseUrl;
-  }
 }
