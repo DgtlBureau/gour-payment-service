@@ -94,22 +94,24 @@ export class PaymentService implements IPaymentService {
     }
 
     const receipt = {
-      cloudpayments: {
-        Items: [{
-          label: 'Пополнение личного кабинета',
-          price: invoice.value,
-          quantity: 1.00,
-          amount: invoice.value,
-          vat: 0,
-          measurementUnit: 'шт',
-        }],
-        calculatePlace: 'https://tastyoleg.com',
-        taxationSystem: 0,
-        email: dto.email,
-        phone: '',
-        customerInfo: '',
-        isBio: false,
-        agentSign: null,
+      СloudPayments: {
+        CustomerReceipt: {
+          Items: [{
+            label: 'Пополнение личного кабинета',
+            price: invoice.value,
+            quantity: 1.00,
+            amount: invoice.value,
+            vat: 0,
+            measurementUnit: 'шт',
+          }],
+          calculatePlace: 'https://tastyoleg.com',
+          taxationSystem: 0,
+          email: dto.email,
+          phone: '',
+          customerInfo: '',
+          isBio: false,
+          agentSign: null,
+        },
       },
     };
 
