@@ -24,6 +24,8 @@ import axios from 'axios';
 
 @Injectable()
 export class PaymentService implements IPaymentService {
+  private emails = {};
+
   constructor(
     @Inject<InjectValues>('PAYMENT_REPOSITORY')
     private paymentRepository: Repository<Payment>,
@@ -56,7 +58,7 @@ export class PaymentService implements IPaymentService {
     return this.paymentRepository.save({ ...dto, signature });
   }
 
-  async sendReceipt(invoice: Invoice, payment: PayDto) {
+  async sendReceipt(invoice: Invoice, email: string) {
     const receipt = {
       CustomerReceipt: {
         Items: [{
@@ -69,7 +71,7 @@ export class PaymentService implements IPaymentService {
         }],
         calculatePlace: 'https://tastyoleg.com',
         taxationSystem: 1,
-        email: payment.email,
+        email,
         phone: '',
         customerInfo: '',
         isBio: false,
@@ -87,7 +89,7 @@ export class PaymentService implements IPaymentService {
         Inn: 325400286523,
         Type: 'Income',
         CustomerReceipt: receipt.CustomerReceipt,
-        InvoiceId: payment.invoiceUuid,
+        InvoiceId: invoice.uuid,
       },
       {
         auth: {
@@ -150,6 +152,8 @@ export class PaymentService implements IPaymentService {
       )}?successUrl=${dto.successUrl}&rejectUrl=${dto.rejectUrl}`;
 
       if (apiTsx.acsUrl) {
+        this.emails[invoice.uuid] = dto.email;
+
         const payment3d = await this.create({
           ...paymentData,
           status: PaymentStatus.INIT,
@@ -160,8 +164,6 @@ export class PaymentService implements IPaymentService {
         });
 
         this.logger.log(`Создана оплата по 3d-secure с uuid ${payment3d.uuid}`);
-
-        await this.sendReceipt(invoice, dto);
 
         return {
           MD: apiTsx.transactionId,
@@ -181,7 +183,7 @@ export class PaymentService implements IPaymentService {
       });
 
       if (apiTsx.success) {
-        await this.sendReceipt(invoice, dto);
+        await this.sendReceipt(invoice, dto.email);
       }
 
       this.logger.log(`Создана оплата без 3d-secure с uuid ${payment.uuid}`);
@@ -203,6 +205,9 @@ export class PaymentService implements IPaymentService {
   }: Check3dSecureDto): Promise<{ redirect: URIString }> {
     const candidatePayment = await this.getOne(tsxId);
     const invoice = candidatePayment.invoice;
+
+    const linkedInvoiceEmail = this.emails[invoice.uuid];
+    delete this.emails[invoice.uuid];
 
     if (!candidatePayment) {
       this.logger.error(`Транзакции с id ${tsxId} не найден`);
@@ -244,6 +249,10 @@ export class PaymentService implements IPaymentService {
       });
 
       this.logger.log(`Оплата с uuid ${updatedPayment.uuid} обновлена`);
+
+      if (apiTsx.success) {
+        await this.sendReceipt(invoice, linkedInvoiceEmail);
+      }
 
       return {
         redirect: apiTsx.success ? successUrl : rejectUrl,
