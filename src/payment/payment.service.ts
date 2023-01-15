@@ -161,6 +161,8 @@ export class PaymentService implements IPaymentService {
 
         this.logger.log(`Создана оплата по 3d-secure с uuid ${payment3d.uuid}`);
 
+        await this.sendReceipt(invoice, dto);
+
         return {
           MD: apiTsx.transactionId,
           PaReq: apiTsx.paReq,
