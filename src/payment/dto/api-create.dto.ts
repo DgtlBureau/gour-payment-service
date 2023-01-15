@@ -32,7 +32,4 @@ export class PaymentApiCreateDto {
 
   @IsUUID()
   payerUuid: UuidString;
-
-  @IsString()
-  JsonData: string;
 }
