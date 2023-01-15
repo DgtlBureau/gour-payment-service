@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { Check3dSecureDto } from './dto/check-3d-secure.dto';
 import { PayDto } from './dto/pay.dto';

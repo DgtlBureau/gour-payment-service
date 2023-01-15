@@ -20,7 +20,7 @@ import { PayDto } from './dto/pay.dto';
 import { PaymentApiService } from './payment-api.service';
 import { Check3dSecureDto } from './dto/check-3d-secure.dto';
 import { ConfigService } from '@nestjs/config';
-import { Currency } from '../@types/currency';
+import axios from 'axios';
 
 @Injectable()
 export class PaymentService implements IPaymentService {
@@ -58,21 +58,6 @@ export class PaymentService implements IPaymentService {
 
   async pay(dto: PayDto) {
     const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
-    // const dto = {
-    //   invoiceUuid: 'sadsad',
-    //   payerUuid: '412',
-    //   email: 'gagelj@mail.ru',
-    //   signature: 'eyJUeXBlIjoiQ2xvdWRDYXJkIiwiQnJvd3NlckluZm9CYXNlNjQiOiJleUpCWTJObGNIUklaV0ZrWlhJaU9pSXFMeW9pTENKS1lYWmhSVzVoWW14bFpDSTZabUZzYzJVc0lrcGhkbUZUWTNKcGNIUkZibUZpYkdWa0lqcDBjblZsTENKTVlXNW5kV0ZuWlNJNkltVnVMVlZUSWl3aVEyOXNiM0pFWlhCMGFDSTZJak13SWl3aVNHVnBaMmgwSWpvaU9UQXdJaXdpVjJsa2RHZ2lPaUl4TkRRd0lpd2lWR2x0WlZwdmJtVWlPaUl0TWpRd0lpd2lWWE5sY2tGblpXNTBJam9pVFc5NmFXeHNZUzgxTGpBZ0tFMWhZMmx1ZEc5emFEc2dTVzUwWld3Z1RXRmpJRTlUSUZnZ01UQXVNVFU3SUhKMk9qRXdPQzR3S1NCSFpXTnJieTh5TURFd01ERXdNU0JHYVhKbFptOTRMekV3T0M0d0luMD0iLCJGb3JtYXQiOjEsIkNhcmRJbmZvIjp7IkZpcnN0U2l4RGlnaXRzIjoiMjIwMjIwIiwiTGFzdEZvdXJEaWdpdHMiOiI3MzY5IiwiRXhwRGF0ZVllYXIiOiIyNCIsIkV4cERhdGVNb250aCI6IjAxIn0sIktleVZlcnNpb24iOiIyIiwiVmFsdWUiOiJnRC9zUUNQOHpDSEFZTjhMWm12WEZENitOemNkK2hUdFI5aDZSZUY2N0ljWTZ5MUF4aHY5cS84UHRsbWJDWGVBVEl4ODdESzFWeDhmcDdLUEZNWjg3VGdQakxpanZubWdIckJGczBjRW1DN0wzK2xkUHRScUFDamRFcndZbVJYWk1nTTR5cm9wUkZXT1VsbmRHWDZGcVFENGE1SzZYUnk5K1dPZXhUUE41bWlodVp4eFc2djdhT1hNZzRzbDc3d1NRcFM4MzNERXNINzl1VzU5bEVvbVVTY21oVStWdVpvWWVteElJUUxVYWExN1NRcml2QzE4WTlscWdxOG5JTlJBaTdJczN2dmhXWU1Kd2h5YUliOEZ4NVkyZlJhVzR2MW01a1FKZm8wb050VTlGbnpnN0F5TVcvOEtacFVEc0x2TjdnV1ZoSjdMbktpUWthdVBldSt0THc9PSJ9',
-    //   currency: Currency.RUB,
-    //   ipAddress: '127.0.0.1',
-    // };
-
-    // const invoice = {
-    //   signature: 'test',
-    //   status: InvoiceStatus.WAITING,
-    //   value: 50,
-    //   uuid: 'f6a16ff7-4a31-11eb-be7b-8344edc8f36b',
-    // };
 
     if (!invoice) {
       this.logger.error(`Счета с uuid ${dto.invoiceUuid} не существует`);
@@ -94,26 +79,44 @@ export class PaymentService implements IPaymentService {
     }
 
     const receipt = {
-      СloudPayments: {
-        CustomerReceipt: {
-          Items: [{
-            label: 'Пополнение личного кабинета',
-            price: invoice.value,
-            quantity: 1.00,
-            amount: invoice.value,
-            vat: 0,
-            measurementUnit: 'шт',
-          }],
-          calculatePlace: 'https://tastyoleg.com',
-          taxationSystem: 0,
-          email: dto.email,
-          phone: '',
-          customerInfo: '',
-          isBio: false,
-          agentSign: null,
-        },
+      CustomerReceipt: {
+        Items: [{
+          label: 'Пополнение личного кабинета',
+          price: invoice.value,
+          quantity: 1.00,
+          amount: invoice.value,
+          vat: 0,
+          measurementUnit: 'шт',
+        }],
+        calculatePlace: 'https://tastyoleg.com',
+        taxationSystem: 1,
+        email: dto.email,
+        phone: '',
+        customerInfo: '',
+        isBio: false,
+        agentSign: null,
       },
     };
+
+    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
+    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
+
+    // sending a check
+    await axios.post(
+      'https://api.cloudpayments.ru/kkt/receipt',
+      {
+        Inn: 325400286523,
+        Type: 'Income',
+        CustomerReceipt: receipt.CustomerReceipt,
+        InvoiceId: dto.invoiceUuid,
+      },
+      {
+        auth: {
+          username: publicId,
+          password: apiSecret,
+        },
+      },
+    );
 
     try {
       const apiTsx = await this.paymentApiService.createPayment({
@@ -125,7 +128,6 @@ export class PaymentService implements IPaymentService {
         Currency: dto.currency,
         IpAddress: dto.ipAddress,
         Description: 'Пополнение личного кабинета',
-        JsonData: JSON.stringify(receipt),
       });
 
       if (apiTsx.errorMessage) this.logger.error(apiTsx.errorMessage);
