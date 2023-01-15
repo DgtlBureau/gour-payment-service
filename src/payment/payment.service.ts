@@ -56,6 +56,48 @@ export class PaymentService implements IPaymentService {
     return this.paymentRepository.save({ ...dto, signature });
   }
 
+  async sendReceipt(invoice: Invoice, payment: PayDto) {
+    const receipt = {
+      CustomerReceipt: {
+        Items: [{
+          label: 'Пополнение личного кабинета',
+          price: invoice.value,
+          quantity: 1.00,
+          amount: invoice.value,
+          vat: 0,
+          measurementUnit: 'шт',
+        }],
+        calculatePlace: 'https://tastyoleg.com',
+        taxationSystem: 1,
+        email: payment.email,
+        phone: '',
+        customerInfo: '',
+        isBio: false,
+        agentSign: null,
+      },
+    };
+
+    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
+    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
+
+    // sending a check
+    await axios.post(
+      'https://api.cloudpayments.ru/kkt/receipt',
+      {
+        Inn: 325400286523,
+        Type: 'Income',
+        CustomerReceipt: receipt.CustomerReceipt,
+        InvoiceId: payment.invoiceUuid,
+      },
+      {
+        auth: {
+          username: publicId,
+          password: apiSecret,
+        },
+      },
+    );
+  }
+
   async pay(dto: PayDto) {
     const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
 
@@ -77,46 +119,6 @@ export class PaymentService implements IPaymentService {
       this.logger.error(`Счет с uuid ${dto.invoiceUuid} уже оплачен`);
       throw new BadRequestException('Счет уже оплачен');
     }
-
-    const receipt = {
-      CustomerReceipt: {
-        Items: [{
-          label: 'Пополнение личного кабинета',
-          price: invoice.value,
-          quantity: 1.00,
-          amount: invoice.value,
-          vat: 0,
-          measurementUnit: 'шт',
-        }],
-        calculatePlace: 'https://tastyoleg.com',
-        taxationSystem: 1,
-        email: dto.email,
-        phone: '',
-        customerInfo: '',
-        isBio: false,
-        agentSign: null,
-      },
-    };
-
-    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
-    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
-
-    // sending a check
-    await axios.post(
-      'https://api.cloudpayments.ru/kkt/receipt',
-      {
-        Inn: 325400286523,
-        Type: 'Income',
-        CustomerReceipt: receipt.CustomerReceipt,
-        InvoiceId: dto.invoiceUuid,
-      },
-      {
-        auth: {
-          username: publicId,
-          password: apiSecret,
-        },
-      },
-    );
 
     try {
       const apiTsx = await this.paymentApiService.createPayment({
@@ -175,6 +177,10 @@ export class PaymentService implements IPaymentService {
       await this.invoiceService.update(invoice.uuid, {
         status: apiTsx.success ? InvoiceStatus.PAID : InvoiceStatus.FAILED,
       });
+
+      if (apiTsx.success) {
+        await this.sendReceipt(invoice, dto);
+      }
 
       this.logger.log(`Создана оплата без 3d-secure с uuid ${payment.uuid}`);
 
