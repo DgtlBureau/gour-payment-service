@@ -21,6 +21,8 @@ import { PaymentApiService } from './payment-api.service';
 import { Check3dSecureDto } from './dto/check-3d-secure.dto';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { SBPDto, UserAgent } from './dto/SBP.dto';
+import { SBPResponseDto } from './dto/SBP-response.dto';
 
 @Injectable()
 export class PaymentService implements IPaymentService {
@@ -263,6 +265,47 @@ export class PaymentService implements IPaymentService {
         error,
       );
     }
+  }
+
+  async getSBPQr(dto: SBPDto): Promise<SBPResponseDto> {
+    // const isMobile = dto.userAgent === UserAgent.MOBILE;
+    const isMobile = true;
+    const SBPQrPrefix = isMobile ? 'link' : 'image';
+    const apiPath = `https://api.cloudpayments.ru/payments/qr/sbp/${SBPQrPrefix}`;
+
+    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
+    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
+
+    const SBPQrReqBody = {
+      IpAddress: dto.ipAddress,
+      Amount: dto.amount,
+      Currency: dto.currency,
+      Description: dto.description,
+      AccountId: dto.payerUuid,
+      InvoiceId: dto.invoiceUuid,
+    };
+
+    // const mock = {
+    //   IpAddress: '127.0.0.1',
+    //   Amount: 200,
+    //   Currency: 'RUB',
+    //   Description: '',
+    //   AccountId: '724fe6dd-2060-40bf-be41-f03eb1b5bdb9',
+    //   InvoiceId: '724fe6dd-2060-40bf-be41-f03eb1b5bdb1',
+    // };
+
+    const res = await axios.post(
+      apiPath,
+      SBPQrReqBody,
+      {
+      auth: {
+        username: publicId,
+        password: apiSecret,
+      },
+    });
+
+    console.log(res.data);
+    return res.data;
   }
 
   sign(signatureObject: PaymentSignatureObject): SignatureString {
