@@ -268,8 +268,7 @@ export class PaymentService implements IPaymentService {
   }
 
   async getSBPQr(dto: SBPDto): Promise<SBPResponseDto> {
-    // const isMobile = dto.userAgent === UserAgent.MOBILE;
-    const isMobile = true;
+    const isMobile = dto.userAgent === UserAgent.MOBILE;
     const SBPQrPrefix = isMobile ? 'link' : 'image';
     const apiPath = `https://api.cloudpayments.ru/payments/qr/sbp/${SBPQrPrefix}`;
 
