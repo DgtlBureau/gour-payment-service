@@ -314,12 +314,11 @@ export class PaymentService implements IPaymentService {
       signature,
     });
 
-    this.limits[paymentSignObj.transactionId] = 3;
+    const limitSBPCall = 300;
+    this.limits[paymentSignObj.transactionId] = limitSBPCall;
 
     const checkStatus = async () => {
       const checkResult = await this.checkSBPPaymentStatus(paymentSignObj.transactionId);
-      console.log(paymentSignObj.transactionId);
-      console.log(checkResult);
       if (checkResult.status === 'Completed'
         || checkResult.status === 'Declined'
         || !this.limits[paymentSignObj.transactionId]
@@ -368,6 +367,7 @@ export class PaymentService implements IPaymentService {
             { transactionId },
             { status: PaymentStatus.SUCCESS },
           );
+          console.log('Оплата прошла успешно');
         } catch (error) {
           throw new InternalServerErrorException('Оплата не удалась', error);
         }
