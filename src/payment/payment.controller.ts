@@ -24,4 +24,10 @@ export class PaymentController {
   getSBPQr(@Payload() dto: SBPDto) {
     return this.paymentService.getSBPQr(dto);
   }
+
+  @MessagePattern('sbp-check')
+  // @Get('sbp-link')
+  checkSBPPaymentStatus(@Payload() dto: SBPDto) {
+    return this.paymentService.getSBPQr(dto);
+  }
 }

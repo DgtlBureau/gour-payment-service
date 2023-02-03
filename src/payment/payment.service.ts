@@ -15,6 +15,7 @@ import { Payment, PaymentSignatureObject } from './payment.entity';
 import { PaymentCreateDto } from './dto/create.dto';
 import { JwtService } from 'jwt/jwt.service';
 import { Invoice, InvoiceWith3dSecure } from 'invoice/invoice.entity';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { InvoiceService } from 'invoice/invoice.service';
 import { PayDto } from './dto/pay.dto';
 import { PaymentApiService } from './payment-api.service';
@@ -35,6 +36,7 @@ export class PaymentService implements IPaymentService {
     private invoiceService: InvoiceService,
     private paymentApiService: PaymentApiService,
     private configService: ConfigService,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
 
   logger = new Logger('PaymentLogger');
@@ -284,14 +286,6 @@ export class PaymentService implements IPaymentService {
       InvoiceId: dto.invoiceUuid,
     };
 
-    // const mock = {
-    //   IpAddress: '127.0.0.1',
-    //   Amount: 200,
-    //   Currency: 'RUB',
-    //   Description: '',
-    //   AccountId: '724fe6dd-2060-40bf-be41-f03eb1b5bdb9',
-    //   InvoiceId: '724fe6dd-2060-40bf-be41-f03eb1b5bdb1',
-    // };
 
     const res = await axios.post(
       apiPath,
@@ -303,8 +297,87 @@ export class PaymentService implements IPaymentService {
       },
     });
 
-    console.log(res.data);
+    const paymentSignObj = {
+      payerUuid: dto.payerUuid,
+      transactionId: res.data.Model.TransactionId,
+      amount: dto.amount,
+      currency: dto.currency,
+      status: PaymentStatus.INIT,
+      invoiceUuid: dto.invoiceUuid,
+    };
+
+    const signature = this.sign(paymentSignObj);
+
+    await this.paymentRepository.save({
+      ...paymentSignObj,
+      signature,
+    });
+
+    const checkStatus = async () =>{
+      const checkResult = await this.checkSBPPaymentStatus(paymentSignObj.transactionId);
+      console.log(paymentSignObj.transactionId);
+      console.log(checkResult);
+      if (checkResult === 'Completed' || checkResult === 'Declined') {
+        this.schedulerRegistry.deleteTimeout(paymentSignObj.transactionId);
+      }
+    };
+
+    const period = 5 * 1000;
+    const timeout = setTimeout(checkStatus, period);
+
+    this.schedulerRegistry.addTimeout(
+      paymentSignObj.transactionId,
+      timeout,
+    );
+
     return res.data;
+  }
+
+  async checkSBPPaymentStatus(transactionId: number, email?: string) {
+    const apiPath = 'https://api.cloudpayments.ru/payments/qr/status/get';
+    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
+    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
+
+    const SBPTransactionStatusRes = await axios.post(
+      apiPath,
+      { TransactionId: transactionId },
+      {
+      auth: {
+        username: publicId,
+        password: apiSecret,
+      },
+    });
+
+    try {
+      const transactionData = SBPTransactionStatusRes.data.Model;
+      if (transactionData.Status === 'Pending') {
+        return 'Pending';
+      }
+      if (transactionData.Status === 'Completed') {
+        try {
+          await this.paymentRepository.update(
+            { transactionId },
+            { status: PaymentStatus.SUCCESS },
+          );
+          return 'Completed';
+        } catch(error) {
+          throw new InternalServerErrorException('Оплата не удалась', error);
+        }
+      }
+      if (transactionData.Status === 'Declined') {
+        await this.paymentRepository.update(
+          { transactionId },
+          { status: PaymentStatus.FAILED },
+        );
+        return 'Declined';
+      }
+      return transactionData.Status;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'неизвестная ошибка',
+        error,
+      );
+    }
   }
 
   sign(signatureObject: PaymentSignatureObject): SignatureString {
