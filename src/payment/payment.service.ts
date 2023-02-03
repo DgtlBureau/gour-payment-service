@@ -323,7 +323,7 @@ export class PaymentService implements IPaymentService {
     };
 
     const period = 5 * 1000;
-    const timeout = setTimeout(checkStatus, period);
+    const timeout = setInterval(checkStatus, period);
 
     this.schedulerRegistry.addInterval(
       paymentSignObj.transactionId,
