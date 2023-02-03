@@ -313,19 +313,19 @@ export class PaymentService implements IPaymentService {
       signature,
     });
 
-    const checkStatus = async () =>{
+    const checkStatus = async () => {
       const checkResult = await this.checkSBPPaymentStatus(paymentSignObj.transactionId);
       console.log(paymentSignObj.transactionId);
       console.log(checkResult);
-      if (checkResult === 'Completed' || checkResult === 'Declined') {
-        this.schedulerRegistry.deleteTimeout(paymentSignObj.transactionId);
+      if (checkResult.status === 'Completed' || checkResult.status === 'Declined') {
+        this.schedulerRegistry.deleteInterval(paymentSignObj.transactionId);
       }
     };
 
     const period = 5 * 1000;
     const timeout = setTimeout(checkStatus, period);
 
-    this.schedulerRegistry.addTimeout(
+    this.schedulerRegistry.addInterval(
       paymentSignObj.transactionId,
       timeout,
     );
@@ -351,7 +351,6 @@ export class PaymentService implements IPaymentService {
     try {
       const transactionData = SBPTransactionStatusRes.data.Model;
       if (transactionData.Status === 'Pending') {
-        return 'Pending';
       }
       if (transactionData.Status === 'Completed') {
         try {
@@ -359,8 +358,7 @@ export class PaymentService implements IPaymentService {
             { transactionId },
             { status: PaymentStatus.SUCCESS },
           );
-          return 'Completed';
-        } catch(error) {
+        } catch (error) {
           throw new InternalServerErrorException('Оплата не удалась', error);
         }
       }
@@ -369,9 +367,8 @@ export class PaymentService implements IPaymentService {
           { transactionId },
           { status: PaymentStatus.FAILED },
         );
-        return 'Declined';
       }
-      return transactionData.Status;
+      return { status: transactionData.Status };
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'неизвестная ошибка',
