@@ -28,6 +28,7 @@ import { SBPResponseDto } from './dto/SBP-response.dto';
 @Injectable()
 export class PaymentService implements IPaymentService {
   private emails = {};
+  private limits = {};
 
   constructor(
     @Inject<InjectValues>('PAYMENT_REPOSITORY')
@@ -313,12 +314,21 @@ export class PaymentService implements IPaymentService {
       signature,
     });
 
+    this.limits[paymentSignObj.transactionId] = 3;
+
     const checkStatus = async () => {
       const checkResult = await this.checkSBPPaymentStatus(paymentSignObj.transactionId);
       console.log(paymentSignObj.transactionId);
       console.log(checkResult);
-      if (checkResult.status === 'Completed' || checkResult.status === 'Declined') {
+      if (checkResult.status === 'Completed'
+        || checkResult.status === 'Declined'
+        || !this.limits[paymentSignObj.transactionId]
+      ) {
         this.schedulerRegistry.deleteInterval(paymentSignObj.transactionId);
+      }
+      this.limits[paymentSignObj.transactionId] -= 1;
+      if (this.limits[paymentSignObj.transactionId] <= 0) {
+        delete this.limits[paymentSignObj.transactionId];
       }
     };
 
