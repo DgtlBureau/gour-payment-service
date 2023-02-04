@@ -287,7 +287,6 @@ export class PaymentService implements IPaymentService {
       InvoiceId: dto.invoiceUuid,
     };
 
-
     const res = await axios.post(
       apiPath,
       SBPQrReqBody,
@@ -309,8 +308,13 @@ export class PaymentService implements IPaymentService {
 
     const signature = this.sign(paymentSignObj);
 
+    const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
+    console.log('INVOICE', invoice);
+    delete paymentSignObj.invoiceUuid;
+
     await this.paymentRepository.save({
       ...paymentSignObj,
+      invoice,
       signature,
     });
 
@@ -347,6 +351,10 @@ export class PaymentService implements IPaymentService {
     const publicId = process.env.PAYMENT_SERVICE_LOGIN;
     const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
 
+    if (email) {
+      this.emails[transactionId] = email;
+    }
+
     const SBPTransactionStatusRes = await axios.post(
       apiPath,
       { TransactionId: transactionId },
@@ -367,6 +375,19 @@ export class PaymentService implements IPaymentService {
             { transactionId },
             { status: PaymentStatus.SUCCESS },
           );
+          const foundPayment = await this.paymentRepository.findOneBy({
+            transactionId,
+          });
+
+          if (foundPayment) {
+            // await this.invoiceService.update(
+            //   { uuid: foundPayment.invoiceUuid },
+            //   { status: InvoiceStatus.PAID },
+            // );
+          }
+          if (this.emails[transactionId]) {
+            delete this.emails[transactionId];
+          }
           console.log('Оплата прошла успешно');
         } catch (error) {
           throw new InternalServerErrorException('Оплата не удалась', error);
