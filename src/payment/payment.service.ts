@@ -309,7 +309,6 @@ export class PaymentService implements IPaymentService {
     const signature = this.sign(paymentSignObj);
 
     const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
-    console.log('INVOICE', invoice);
     delete paymentSignObj.invoiceUuid;
 
     await this.paymentRepository.save({
@@ -367,9 +366,8 @@ export class PaymentService implements IPaymentService {
 
     try {
       const transactionData = SBPTransactionStatusRes.data.Model;
-      if (transactionData.Status === 'Pending') {
-      }
       if (transactionData.Status === 'Completed') {
+        console.log('STATUS IS COMPLETED');
         try {
           await this.paymentRepository.update(
             { transactionId },
@@ -378,15 +376,19 @@ export class PaymentService implements IPaymentService {
           const foundPayment = await this.paymentRepository.findOneBy({
             transactionId,
           });
+          console.log('FOUND PAYMENT', foundPayment);
 
           if (foundPayment) {
-            // await this.invoiceService.update(
-            //   { uuid: foundPayment.invoiceUuid },
-            //   { status: InvoiceStatus.PAID },
-            // );
-          }
-          if (this.emails[transactionId]) {
-            delete this.emails[transactionId];
+            const updatedInvoice = await this.invoiceService.update(
+              foundPayment.invoice.uuid,
+              { status: InvoiceStatus.PAID },
+            );
+            console.log('INVOIUCE FOUND', updatedInvoice);
+            if (this.emails[transactionId]) {
+              console.log('EMAIL FOUND', this.emails[transactionId]);
+              await this.sendReceipt(updatedInvoice, this.emails[transactionId]);
+              delete this.emails[transactionId];
+            }
           }
           console.log('Оплата прошла успешно');
         } catch (error) {
@@ -398,6 +400,20 @@ export class PaymentService implements IPaymentService {
           { transactionId },
           { status: PaymentStatus.FAILED },
         );
+        const foundPayment = await this.paymentRepository.findOneBy({
+          transactionId,
+        });
+
+        if (foundPayment) {
+          const updatedInvoice = await this.invoiceService.update(
+            foundPayment.invoice.uuid,
+            { status: InvoiceStatus.FAILED },
+          );
+          if (this.emails[transactionId]) {
+            await this.sendReceipt(updatedInvoice, this.emails[transactionId]);
+            delete this.emails[transactionId];
+          }
+        }
       }
       return { status: transactionData.Status };
     } catch (error) {
