@@ -373,8 +373,9 @@ export class PaymentService implements IPaymentService {
             { transactionId },
             { status: PaymentStatus.SUCCESS },
           );
-          const foundPayment = await this.paymentRepository.findOneBy({
-            transactionId,
+          const foundPayment = await this.paymentRepository.findOne({
+            where: { transactionId },
+            relations: ['invoice'],
           });
           console.log('FOUND PAYMENT', foundPayment);
 
