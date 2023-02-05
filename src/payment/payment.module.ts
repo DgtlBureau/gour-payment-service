@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { DatabaseModule } from 'database/database.module';
 import { paymentProviders } from './payment.providers';
 import { PaymentService } from './payment.service';
@@ -36,7 +37,12 @@ const httpFactory = {
     JwtModule,
     forwardRef(() => InvoiceModule),
   ],
-  providers: [...paymentProviders, PaymentService, PaymentApiService],
+  providers: [
+    ...paymentProviders,
+    PaymentService,
+    PaymentApiService,
+    SchedulerRegistry,
+  ],
   exports: [PaymentApiService],
   controllers: [PaymentController],
 })

@@ -15,16 +15,20 @@ import { Payment, PaymentSignatureObject } from './payment.entity';
 import { PaymentCreateDto } from './dto/create.dto';
 import { JwtService } from 'jwt/jwt.service';
 import { Invoice, InvoiceWith3dSecure } from 'invoice/invoice.entity';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { InvoiceService } from 'invoice/invoice.service';
 import { PayDto } from './dto/pay.dto';
 import { PaymentApiService } from './payment-api.service';
 import { Check3dSecureDto } from './dto/check-3d-secure.dto';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { SBPDto, UserAgent } from './dto/SBP.dto';
+import { SBPResponseDto } from './dto/SBP-response.dto';
 
 @Injectable()
 export class PaymentService implements IPaymentService {
   private emails = {};
+  private limits = {};
 
   constructor(
     @Inject<InjectValues>('PAYMENT_REPOSITORY')
@@ -33,6 +37,7 @@ export class PaymentService implements IPaymentService {
     private invoiceService: InvoiceService,
     private paymentApiService: PaymentApiService,
     private configService: ConfigService,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
 
   logger = new Logger('PaymentLogger');
@@ -257,6 +262,160 @@ export class PaymentService implements IPaymentService {
       return {
         redirect: apiTsx.success ? successUrl : rejectUrl,
       };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'неизвестная ошибка',
+        error,
+      );
+    }
+  }
+
+  async getSBPQr(dto: SBPDto): Promise<SBPResponseDto> {
+    const isMobile = dto.userAgent === UserAgent.MOBILE;
+    const SBPQrPrefix = isMobile ? 'link' : 'image';
+    const apiPath = `https://api.cloudpayments.ru/payments/qr/sbp/${SBPQrPrefix}`;
+
+    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
+    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
+
+    const SBPQrReqBody = {
+      IpAddress: dto.ipAddress,
+      Amount: dto.amount,
+      Currency: dto.currency,
+      Description: dto.description,
+      AccountId: dto.payerUuid,
+      InvoiceId: dto.invoiceUuid,
+    };
+
+    const res = await axios.post(
+      apiPath,
+      SBPQrReqBody,
+      {
+      auth: {
+        username: publicId,
+        password: apiSecret,
+      },
+    });
+
+    const paymentSignObj = {
+      payerUuid: dto.payerUuid,
+      transactionId: res.data.Model.TransactionId,
+      amount: dto.amount,
+      currency: dto.currency,
+      status: PaymentStatus.INIT,
+      invoiceUuid: dto.invoiceUuid,
+    };
+
+    const signature = this.sign(paymentSignObj);
+
+    const invoice = await this.invoiceService.getOne(dto.invoiceUuid);
+    delete paymentSignObj.invoiceUuid;
+
+    await this.paymentRepository.save({
+      ...paymentSignObj,
+      invoice,
+      signature,
+    });
+
+    const limitSBPCall = 300;
+    this.limits[paymentSignObj.transactionId] = limitSBPCall;
+
+    const checkStatus = async () => {
+      const checkResult = await this.checkSBPPaymentStatus(paymentSignObj.transactionId);
+      if (checkResult.status === 'Completed'
+        || checkResult.status === 'Declined'
+        || !this.limits[paymentSignObj.transactionId]
+      ) {
+        this.schedulerRegistry.deleteInterval(paymentSignObj.transactionId);
+      }
+      this.limits[paymentSignObj.transactionId] -= 1;
+      if (this.limits[paymentSignObj.transactionId] <= 0) {
+        delete this.limits[paymentSignObj.transactionId];
+      }
+    };
+
+    const period = 5 * 1000;
+    const timeout = setInterval(checkStatus, period);
+
+    this.schedulerRegistry.addInterval(
+      paymentSignObj.transactionId,
+      timeout,
+    );
+
+    return res.data;
+  }
+
+  async checkSBPPaymentStatus(transactionId: number, email?: string) {
+    const apiPath = 'https://api.cloudpayments.ru/payments/qr/status/get';
+    const publicId = process.env.PAYMENT_SERVICE_LOGIN;
+    const apiSecret = process.env.PAYMENT_SERVICE_API_KEY;
+
+    if (email) {
+      this.emails[transactionId] = email;
+    }
+
+    const SBPTransactionStatusRes = await axios.post(
+      apiPath,
+      { TransactionId: transactionId },
+      {
+      auth: {
+        username: publicId,
+        password: apiSecret,
+      },
+    });
+
+    try {
+      const transactionData = SBPTransactionStatusRes.data.Model;
+      if (transactionData.Status === 'Completed') {
+        console.log('STATUS IS COMPLETED');
+        try {
+          await this.paymentRepository.update(
+            { transactionId },
+            { status: PaymentStatus.SUCCESS },
+          );
+          const foundPayment = await this.paymentRepository.findOneBy({
+            transactionId,
+          });
+          console.log('FOUND PAYMENT', foundPayment);
+
+          if (foundPayment) {
+            const updatedInvoice = await this.invoiceService.update(
+              foundPayment.invoice.uuid,
+              { status: InvoiceStatus.PAID },
+            );
+            console.log('INVOIUCE FOUND', updatedInvoice);
+            if (this.emails[transactionId]) {
+              console.log('EMAIL FOUND', this.emails[transactionId]);
+              await this.sendReceipt(updatedInvoice, this.emails[transactionId]);
+              delete this.emails[transactionId];
+            }
+          }
+          console.log('Оплата прошла успешно');
+        } catch (error) {
+          throw new InternalServerErrorException('Оплата не удалась', error);
+        }
+      }
+      if (transactionData.Status === 'Declined') {
+        await this.paymentRepository.update(
+          { transactionId },
+          { status: PaymentStatus.FAILED },
+        );
+        const foundPayment = await this.paymentRepository.findOneBy({
+          transactionId,
+        });
+
+        if (foundPayment) {
+          const updatedInvoice = await this.invoiceService.update(
+            foundPayment.invoice.uuid,
+            { status: InvoiceStatus.FAILED },
+          );
+          if (this.emails[transactionId]) {
+            await this.sendReceipt(updatedInvoice, this.emails[transactionId]);
+            delete this.emails[transactionId];
+          }
+        }
+      }
+      return { status: transactionData.Status };
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'неизвестная ошибка',
