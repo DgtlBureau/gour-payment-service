@@ -382,7 +382,7 @@ export class PaymentService implements IPaymentService {
           if (foundPayment) {
             const updatedInvoice = await this.invoiceService.update(
               foundPayment.invoice.uuid,
-              { status: InvoiceStatus.PAID },
+              { status: InvoiceStatus.PAID, value: foundPayment.invoice.value },
             );
             console.log('INVOIUCE FOUND', updatedInvoice);
             if (this.emails[transactionId]) {
