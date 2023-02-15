@@ -1,9 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { Check3dSecureDto } from './dto/check-3d-secure.dto';
 import { PayDto } from './dto/pay.dto';
 import { PaymentService } from './payment.service';
 import { SBPDto } from './dto/SBP.dto';
+import { ExportDto } from './dto/export.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -12,6 +13,11 @@ export class PaymentController {
   @MessagePattern('pay')
   pay(@Payload() dto: PayDto) {
     return this.paymentService.pay(dto);
+  }
+
+  @MessagePattern('success-payments')
+  successPayments(@Payload() dto: ExportDto) {
+    return this.paymentService.getSuccessPayments(dto);
   }
 
   @MessagePattern('check-3d-secure-and-finish-pay')
