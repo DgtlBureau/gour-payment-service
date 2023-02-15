@@ -448,7 +448,7 @@ export class PaymentService implements IPaymentService {
         status: PaymentStatus.SUCCESS,
         ...(hasPeriod ? { updatedAt: Between(startDate, endDate) } : {}),
       },
-      select: ['status', 'payerUuid', 'amount'],
+      select: ['payerUuid', 'amount'],
     });
 
     return foundPayments;
