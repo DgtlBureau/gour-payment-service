@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectValues } from '../@types/inject-values';
-import { Between, Repository } from 'typeorm';
+import { Between, Not, Repository } from 'typeorm';
 import { InvoiceStatus, PaymentStatus } from '../@types/statuses';
 import { IPaymentService } from '../@types/services-implementation';
 import { Payment, PaymentSignatureObject } from './payment.entity';
@@ -446,10 +446,15 @@ export class PaymentService implements IPaymentService {
     const hasPeriod = !!startDate && !!endDate;
 
     const foundPayments = await this.paymentRepository.find({
-      where: {
+      where: [{
         status: PaymentStatus.SUCCESS,
         ...(hasPeriod ? { updatedAt: Between(startDate, endDate) } : {}),
-      },
+        code: Not(''),
+      }, {
+        status: PaymentStatus.SUCCESS,
+        ...(hasPeriod ? { updatedAt: Between(startDate, endDate) } : {}),
+        code: Not(null),
+      }],
       select: ['payerUuid', 'amount', 'fullName', 'code'],
     });
 
