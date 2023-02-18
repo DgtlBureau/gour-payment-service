@@ -36,6 +36,12 @@ export class SBPDto {
   @IsUUID()
   payerUuid: string;
 
+  @IsString()
+  fullName: string;
+
+  @IsString()
+  code: string;
+
   @IsEmail()
   @IsOptional()
   email: string;

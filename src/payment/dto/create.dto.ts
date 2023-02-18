@@ -29,5 +29,11 @@ export class PaymentCreateDto {
   @IsUUID()
   payerUuid: UuidString;
 
+  @IsString()
+  fullName: string;
+
+  @IsString()
+  code: string;
+
   invoice: Invoice;
 }

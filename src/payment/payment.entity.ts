@@ -6,7 +6,7 @@ import { Invoice } from '../invoice/invoice.entity';
 
 export type PaymentSignatureObject = { invoiceUuid: UuidString } & Pick<
   Payment,
-  'amount' | 'payerUuid' | 'currency' | 'transactionId'
+  'amount' | 'payerUuid' | 'currency' | 'transactionId' | 'fullName' | 'code'
 >;
 
 export type Secure3dData = {
@@ -32,6 +32,12 @@ export class Payment extends AppEntity {
 
   @Column({ type: 'enum', enum: PaymentStatus })
   status: PaymentStatus;
+
+  @Column({ type: 'text', default: '', nullable: true })
+  fullName: string;
+
+  @Column({ type: 'text', default: '', nullable: true })
+  code: string;
 
   @Column({ type: 'text', nullable: true })
   errorMessage: ErrorString;
