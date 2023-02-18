@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectValues } from '../@types/inject-values';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { InvoiceStatus, PaymentStatus } from '../@types/statuses';
 import { IPaymentService } from '../@types/services-implementation';
 import { Payment, PaymentSignatureObject } from './payment.entity';
@@ -24,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { SBPDto, UserAgent } from './dto/SBP.dto';
 import { SBPResponseDto } from './dto/SBP-response.dto';
+import { ExportDto } from './dto/export.dto';
 
 @Injectable()
 export class PaymentService implements IPaymentService {
@@ -435,5 +436,21 @@ export class PaymentService implements IPaymentService {
 
   verifySign(signature: SignatureString): boolean {
     throw new Error('Method not implemented.');
+  }
+
+  async getSuccessPayments(dto: ExportDto): Promise<Payment[]> {
+    const startDate = dto?.start && new Date(dto.start);
+    const endDate = dto?.end && new Date(dto.end);
+    const hasPeriod = !!startDate && !!endDate;
+
+    const foundPayments = await this.paymentRepository.find({
+      where: {
+        status: PaymentStatus.SUCCESS,
+        ...(hasPeriod ? { updatedAt: Between(startDate, endDate) } : {}),
+      },
+      select: ['payerUuid', 'amount'],
+    });
+
+    return foundPayments;
   }
 }
