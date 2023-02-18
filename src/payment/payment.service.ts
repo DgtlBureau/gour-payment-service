@@ -57,6 +57,8 @@ export class PaymentService implements IPaymentService {
       payerUuid: dto.payerUuid,
       transactionId: dto.transactionId,
       invoiceUuid: dto.invoice.uuid,
+      fullName: dto.fullName,
+      code: dto.code,
     };
 
     const signature = this.sign(paymentSignatureObject);
@@ -151,6 +153,8 @@ export class PaymentService implements IPaymentService {
         currency: dto.currency,
         amount: invoice.value,
         payerUuid: dto.payerUuid,
+        fullName: dto.fullName,
+        code: dto.code,
       };
 
       const redirectUrl = `${this.configService.get(
@@ -305,6 +309,8 @@ export class PaymentService implements IPaymentService {
       currency: dto.currency,
       status: PaymentStatus.INIT,
       invoiceUuid: dto.invoiceUuid,
+      fullName: dto.fullName,
+      code: dto.code,
     };
 
     const signature = this.sign(paymentSignObj);
@@ -368,7 +374,6 @@ export class PaymentService implements IPaymentService {
     try {
       const transactionData = SBPTransactionStatusRes.data.Model;
       if (transactionData.Status === 'Completed') {
-        console.log('STATUS IS COMPLETED');
         try {
           await this.paymentRepository.update(
             { transactionId },
@@ -378,16 +383,13 @@ export class PaymentService implements IPaymentService {
             where: { transactionId },
             relations: ['invoice'],
           });
-          console.log('FOUND PAYMENT', foundPayment);
 
           if (foundPayment) {
             const updatedInvoice = await this.invoiceService.update(
               foundPayment.invoice.uuid,
               { status: InvoiceStatus.PAID, value: foundPayment.invoice.value },
             );
-            console.log('INVOIUCE FOUND', updatedInvoice);
             if (this.emails[transactionId]) {
-              console.log('EMAIL FOUND', this.emails[transactionId]);
               await this.sendReceipt(updatedInvoice, this.emails[transactionId]);
               delete this.emails[transactionId];
             }
