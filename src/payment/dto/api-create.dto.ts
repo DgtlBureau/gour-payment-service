@@ -4,7 +4,7 @@ import {
   IsNumber,
   IsString,
   IsUrl,
-  IsUUID,
+  IsUUID, ValidateIf,
 } from 'class-validator';
 import { Currency } from '../../@types/currency';
 
@@ -25,6 +25,7 @@ export class PaymentApiCreateDto {
   InvoiceId: UuidString;
 
   @IsEmail()
+  @ValidateIf(o => o.Email !== '')
   Email: EmailString;
 
   @IsString()
