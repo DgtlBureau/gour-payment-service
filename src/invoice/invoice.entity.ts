@@ -17,7 +17,7 @@ export type InvoiceWith3dSecure = Invoice & {
 @Entity({ name: 'invoice' })
 export class Invoice extends AppEntity {
   @Column('uuid')
-  payerUuid: UuidString;
+  payerUuid?: UuidString | undefined;
 
   //TODO: перенести в meta
   @Column({ type: 'double precision', nullable: true })

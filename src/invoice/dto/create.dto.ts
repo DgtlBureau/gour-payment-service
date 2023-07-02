@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsObject, IsUUID } from 'class-validator';
+import { IsEnum, IsNumber, IsObject, IsUUID, IsOptional, ValidateIf } from 'class-validator';
 import { Currency } from '../../@types/currency';
 
 export class InvoiceCreateDto {
@@ -15,5 +15,7 @@ export class InvoiceCreateDto {
   meta: SomeObject; // some meta information
 
   @IsUUID()
-  payerUuid: UuidString;
+  @ValidateIf(o => o.payerUuid !== '')
+  @IsOptional()
+  payerUuid?: string;
 }

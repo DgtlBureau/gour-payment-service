@@ -23,32 +23,33 @@ export class InvoiceService implements IInvoiceService {
 
   async create(dto: InvoiceCreateDto): Promise<Invoice> {
     const invoiceExpMin = +this.configService.get('SIGNATURE_SECRET_KEY_EXP');
-
-    const candidateInvoice = await this.invoiceRepository
-      .createQueryBuilder('invoice')
-      .where('invoice.expiresAt >= :currentDate', {
-        currentDate: new Date().toUTCString(),
-      })
-      .andWhere('invoice.payerUuid = :payerUuid', { payerUuid: dto.payerUuid })
-      .andWhere('invoice.status != :status', { status: InvoiceStatus.PAID })
-      .getOne();
-
     const invoiceSignatureObject: InvoiceSignatureObject = {
       ...dto,
     };
 
     const signature = this.sign(invoiceSignatureObject);
 
-    if (candidateInvoice && !this.verifySign(candidateInvoice.signature)) {
-      throw new ForbiddenException('Ошибка проверки подлинности инвойса');
-    }
+    if (dto.payerUuid) {
+      const candidateInvoice = await this.invoiceRepository
+          .createQueryBuilder('invoice')
+          .where('invoice.expiresAt >= :currentDate', {
+            currentDate: new Date().toUTCString(),
+          })
+          .andWhere('invoice.payerUuid = :payerUuid', { payerUuid: dto.payerUuid })
+          .andWhere('invoice.status != :status', { status: InvoiceStatus.PAID })
+          .getOne();
 
-    if (candidateInvoice && this.verifySign(candidateInvoice.signature)) {
-      return this.invoiceRepository.save({
-        uuid: candidateInvoice.uuid,
-        ...dto,
-        signature,
-      });
+      if (candidateInvoice && !this.verifySign(candidateInvoice.signature)) {
+        throw new ForbiddenException('Ошибка проверки подлинности инвойса');
+      }
+
+      if (candidateInvoice && this.verifySign(candidateInvoice.signature)) {
+        return this.invoiceRepository.save({
+          uuid: candidateInvoice.uuid,
+          ...dto,
+          signature,
+        });
+      }
     }
 
     const invoiceExpiresAt = new Date();

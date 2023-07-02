@@ -192,7 +192,7 @@ export class PaymentService implements IPaymentService {
         status: apiTsx.success ? InvoiceStatus.PAID : InvoiceStatus.FAILED,
       });
 
-      if (apiTsx.success) {
+      if (apiTsx.success && dto.email && dto.email.length) {
         await this.sendReceipt(invoice, dto.email);
       }
 
@@ -404,8 +404,9 @@ export class PaymentService implements IPaymentService {
           { transactionId },
           { status: PaymentStatus.FAILED },
         );
-        const foundPayment = await this.paymentRepository.findOneBy({
-          transactionId,
+        const foundPayment = await this.paymentRepository.findOne({
+          where: { transactionId },
+          relations: ['invoice'],
         });
 
         if (foundPayment) {

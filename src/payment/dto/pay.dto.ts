@@ -6,6 +6,7 @@ import {
   IsString,
   IsUrl,
   IsUUID,
+  ValidateIf,
 } from 'class-validator';
 import { Currency } from '../../@types/currency';
 
@@ -14,9 +15,12 @@ export class PayDto {
   currency: Currency;
 
   @IsUUID()
-  payerUuid: UuidString;
+  @ValidateIf(o => o.payerUuid !== '')
+  @IsOptional()
+  payerUuid?: string;
 
   @IsEmail()
+  @ValidateIf(o => o.email !== '')
   @IsOptional()
   email: EmailString;
 

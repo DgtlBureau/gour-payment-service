@@ -6,6 +6,7 @@ import {
   IsString,
   IsUUID,
   IsNumber,
+  ValidateIf,
 } from 'class-validator';
 import { Currency } from '../../@types/currency';
 
@@ -34,15 +35,18 @@ export class SBPDto {
   invoiceUuid: string;
 
   @IsUUID()
-  payerUuid: string;
+  @IsOptional()
+  @ValidateIf(o => o.payerUuid !== '')
+  payerUuid?: string;
+
+  @IsEmail()
+  @IsOptional()
+  @ValidateIf(o => o.email !== '')
+  email: string;
 
   @IsString()
   fullName: string;
 
   @IsString()
   code: string;
-
-  @IsEmail()
-  @IsOptional()
-  email: string;
 }
