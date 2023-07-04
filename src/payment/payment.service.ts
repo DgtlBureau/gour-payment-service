@@ -25,6 +25,8 @@ import axios from 'axios';
 import { SBPDto, UserAgent } from './dto/SBP.dto';
 import { SBPResponseDto } from './dto/SBP-response.dto';
 import { ExportDto } from './dto/export.dto';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class PaymentService implements IPaymentService {
@@ -32,6 +34,7 @@ export class PaymentService implements IPaymentService {
   private limits = {};
 
   constructor(
+    @Inject('MAIN_SERVICE') private mainClient: ClientProxy,
     @Inject<InjectValues>('PAYMENT_REPOSITORY')
     private paymentRepository: Repository<Payment>,
     private jwtService: JwtService,
@@ -383,6 +386,7 @@ export class PaymentService implements IPaymentService {
             where: { transactionId },
             relations: ['invoice'],
           });
+          console.log('pmnt', foundPayment);
 
           if (foundPayment) {
             const updatedInvoice = await this.invoiceService.update(
@@ -392,6 +396,19 @@ export class PaymentService implements IPaymentService {
             if (this.emails[transactionId]) {
               await this.sendReceipt(updatedInvoice, this.emails[transactionId]);
               delete this.emails[transactionId];
+            }
+
+            const invoiceWithMeta = await this.invoiceService.getOne(
+                foundPayment.invoice.uuid
+            );
+            try {
+              console.log('TRY TO  SIMPLE_CONFIRM', invoiceWithMeta.meta?.orderUuid);
+              const res123 = await firstValueFrom(this.mainClient.send(
+                  'simple-confirm-order-payment',
+                  {orderUuid: invoiceWithMeta.meta.orderUuid}
+              ));
+            } catch (error) {
+              console.log('ERROR SIMPLE CONFIRM', error);
             }
           }
           console.log('Оплата прошла успешно');

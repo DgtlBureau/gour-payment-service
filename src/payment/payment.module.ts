@@ -11,6 +11,7 @@ import { PaymentApiService } from './payment-api.service';
 import { JwtModule } from 'jwt/jwt.module';
 import { InvoiceModule } from 'invoice/invoice.module';
 import { PaymentController } from './payment.controller';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 const httpFactory = {
   useFactory: async (configService: AppConfigService) => ({
@@ -35,6 +36,16 @@ const httpFactory = {
     HttpModule.registerAsync(httpFactory),
     DatabaseModule,
     JwtModule,
+    ClientsModule.register([
+      {
+        name: 'MAIN_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.MAIN_SERVICE_HOST,
+          port: +process.env.MAIN_SERVICE_PORT,
+        },
+      },
+    ]),
     forwardRef(() => InvoiceModule),
   ],
   providers: [

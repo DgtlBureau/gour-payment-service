@@ -24,7 +24,7 @@ export class Invoice extends AppEntity {
   amount: AmountOfGoodsNumber;
 
   @Column({ type: 'json', default: '{}' })
-  meta: JSON;
+  meta: any | { orderUuid: string };
 
   @Column('double precision')
   value: PurchaseValueNumber;
