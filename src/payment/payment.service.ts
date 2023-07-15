@@ -386,7 +386,6 @@ export class PaymentService implements IPaymentService {
             where: { transactionId },
             relations: ['invoice'],
           });
-          console.log('pmnt', foundPayment);
 
           if (foundPayment) {
             const updatedInvoice = await this.invoiceService.update(
@@ -473,7 +472,7 @@ export class PaymentService implements IPaymentService {
         ...(hasPeriod ? { updatedAt: Between(startDate, endDate) } : {}),
         code: Not(null),
       }],
-      select: ['payerUuid', 'amount', 'fullName', 'code'],
+      select: ['payerUuid', 'amount', 'fullName', 'code', 'createdAt'],
     });
 
     return foundPayments;
